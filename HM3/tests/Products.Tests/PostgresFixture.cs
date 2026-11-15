@@ -2,6 +2,7 @@ using Dapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
 namespace Products.Tests;
@@ -12,8 +13,12 @@ public sealed class PostgresCollection : ICollectionFixture<PostgresFixture>;
 public sealed class PostgresFixture : IAsyncLifetime
 {
     private readonly string _databaseName = "products_test_" + Guid.NewGuid().ToString("N");
-    private readonly string _serverConnection = Environment.GetEnvironmentVariable("PRODUCTS_TEST_CONNECTION")
-        ?? "Host=localhost;Port=5433;Database=postgres;Username=products;Password=products;Timeout=5";
+    private readonly string _serverConnection = new NpgsqlConnectionStringBuilder(
+        Environment.GetEnvironmentVariable("PRODUCTS_TEST_CONNECTION")
+        ?? "Host=127.0.0.1;Port=5433;Database=postgres;Username=products;Password=products;Timeout=5")
+    {
+        Pooling = false
+    }.ConnectionString;
     private readonly WebApplicationFactory<Program> _factory = new();
     private bool _databaseCreated;
 
@@ -29,7 +34,7 @@ public sealed class PostgresFixture : IAsyncLifetime
         ConnectionString = new NpgsqlConnectionStringBuilder(_serverConnection)
         {
             Database = _databaseName,
-            Pooling = false
+            Pooling = true
         }.ConnectionString;
         Api = _factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) =>
             config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -41,7 +46,8 @@ public sealed class PostgresFixture : IAsyncLifetime
 
     public async Task ResetAsync()
     {
-        await using var connection = new NpgsqlConnection(ConnectionString);
+        var dataSource = Api.Services.GetRequiredService<NpgsqlDataSource>();
+        await using var connection = await dataSource.OpenConnectionAsync();
         await connection.ExecuteAsync("TRUNCATE products");
     }
 

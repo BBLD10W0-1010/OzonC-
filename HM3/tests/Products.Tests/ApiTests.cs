@@ -93,6 +93,61 @@ public sealed class ApiTests(PostgresFixture database) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Http_UpdatePersistsChangesAndKeepsCreationTime()
+    {
+        using var created = await _http.PostAsJsonAsync("/api/products", ValidHttpProduct());
+        var id = (await created.Content.ReadFromJsonAsync<CreateProductResponse>())!.Id;
+        var path = $"/api/products/{id}";
+        var original = await _http.GetFromJsonAsync<JsonElement>(path);
+
+        using var response = await _http.PutAsJsonAsync(path, new
+        {
+            name = "  Чай  ",
+            price = 199.90m,
+            weight = 0.2,
+            type = "General",
+            warehouseNumber = 8
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var updated = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(id, updated.GetProperty("id").GetGuid());
+        Assert.Equal("Чай", updated.GetProperty("name").GetString());
+        Assert.Equal(199.90m, updated.GetProperty("price").GetDecimal());
+        Assert.Equal(0.2, updated.GetProperty("weight").GetDouble());
+        Assert.Equal("General", updated.GetProperty("type").GetString());
+        Assert.Equal(8, updated.GetProperty("warehouseNumber").GetInt32());
+        Assert.Equal(original.GetProperty("createdAt").GetDateTimeOffset(), updated.GetProperty("createdAt").GetDateTimeOffset());
+
+        var page = await _http.GetFromJsonAsync<JsonElement>("/api/products?type=General&warehouseNumber=8");
+        Assert.Equal(id, Assert.Single(page.GetProperty("items").EnumerateArray()).GetProperty("id").GetGuid());
+        using var missing = await _http.PutAsJsonAsync($"/api/products/{Guid.NewGuid()}", ValidHttpProduct());
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
+    [Fact]
+    public async Task Http_InvalidUpdateLeavesOriginalProduct()
+    {
+        using var created = await _http.PostAsJsonAsync("/api/products", ValidHttpProduct());
+        var id = (await created.Content.ReadFromJsonAsync<CreateProductResponse>())!.Id;
+        var path = $"/api/products/{id}";
+
+        using var response = await _http.PutAsJsonAsync(path, new
+        {
+            name = "Чай",
+            price = -1,
+            weight = 0.2,
+            type = "General",
+            warehouseNumber = 8
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var product = await _http.GetFromJsonAsync<JsonElement>(path);
+        Assert.Equal("Молоко", product.GetProperty("name").GetString());
+        Assert.Equal(99.90m, product.GetProperty("price").GetDecimal());
+    }
+
+    [Fact]
     public async Task Grpc_AndHttpShareProductsAndFilters()
     {
         using var channel = CreateChannel(_factory);
@@ -152,6 +207,31 @@ public sealed class ApiTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal(StatusCode.NotFound, missing.StatusCode);
     }
 
+    [Fact]
+    public async Task Grpc_UpdatesProductAndReturnsNotFoundForUnknownId()
+    {
+        using var channel = CreateChannel(_factory);
+        var grpc = new GrpcContracts.ProductsService.ProductsServiceClient(channel);
+        var created = await grpc.CreateProductAsync(ValidGrpcProduct());
+        var update = new GrpcContracts.UpdateProductRequest
+        {
+            Id = created.Id,
+            Name = "Чай",
+            Price = "199.90",
+            Weight = 0.2,
+            Type = GrpcContracts.ProductType.General,
+            WarehouseNumber = 8
+        };
+
+        var updated = await grpc.UpdateProductAsync(update);
+        Assert.Equal("Чай", updated.Name);
+        Assert.Equal(updated, await grpc.GetProductAsync(new() { Id = created.Id }));
+
+        update.Id = Guid.NewGuid().ToString();
+        var error = await Assert.ThrowsAsync<RpcException>(async () => await grpc.UpdateProductAsync(update));
+        Assert.Equal(StatusCode.NotFound, error.StatusCode);
+    }
+
     [Theory]
     [InlineData("wrong")]
     [InlineData("1,000.00")]
@@ -189,6 +269,27 @@ public sealed class ApiTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal(1, page.GetProperty("totalCount").GetInt32());
     }
 
+    [Fact]
+    public async Task Transcoding_UpdateTakesIdFromPath()
+    {
+        using var created = await _http.PostAsJsonAsync("/api/products", ValidHttpProduct());
+        var id = (await created.Content.ReadFromJsonAsync<CreateProductResponse>())!.Id;
+
+        using var response = await _http.PutAsJsonAsync($"/v1/products/{id}", new
+        {
+            name = "Чай",
+            price = "199.90",
+            weight = 0.2,
+            type = "GENERAL",
+            warehouseNumber = 8
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var updated = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(id, updated.GetProperty("id").GetGuid());
+        Assert.Equal("199.90", updated.GetProperty("price").GetString());
+    }
+
     [Theory]
     [InlineData("/v1/products?pageNumber=0", HttpStatusCode.BadRequest)]
     [InlineData("/v1/products?pageSize=101", HttpStatusCode.BadRequest)]
@@ -212,6 +313,7 @@ public sealed class ApiTests(PostgresFixture database) : IAsyncLifetime
             Assert.True(paths.GetProperty(path).TryGetProperty("post", out _));
             Assert.True(paths.GetProperty(path).TryGetProperty("get", out _));
             Assert.True(paths.GetProperty(path + "/{id}").TryGetProperty("get", out _));
+            Assert.True(paths.GetProperty(path + "/{id}").TryGetProperty("put", out _));
         }
 
         var parameters = paths.GetProperty("/v1/products").GetProperty("get").GetProperty("parameters")

@@ -30,6 +30,36 @@ public sealed class ProductServiceTests
         await Assert.ThrowsAsync<ProductNotFoundException>(() => _service.GetByIdAsync(Guid.NewGuid(), default));
     }
 
+    [Fact]
+    public async Task Update_TrimsNameAndReturnsUpdatedProduct()
+    {
+        var id = await _service.CreateAsync(new("Молоко", 99.90m, 1, ProductType.Food, 7), default);
+
+        var updated = await _service.UpdateAsync(id, new("  Чай  ", 199m, 0.2, ProductType.Food, 9), default);
+
+        Assert.Equal(new Product(id, "Чай", 199m, 0.2, ProductType.Food, Start, 9), updated);
+        Assert.Equal(updated, _repository.Product);
+    }
+
+    [Fact]
+    public async Task Update_MissingProductThrowsNotFound()
+    {
+        await Assert.ThrowsAsync<ProductNotFoundException>(() =>
+            _service.UpdateAsync(Guid.NewGuid(), new("Чай", 199m, 0.2, ProductType.Food, 9), default));
+    }
+
+    [Fact]
+    public async Task Update_InvalidFieldsLeaveProductUnchanged()
+    {
+        var id = await _service.CreateAsync(new("Молоко", 99.90m, 1, ProductType.Food, 7), default);
+        var original = _repository.Product;
+
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _service.UpdateAsync(id, new("Чай", -1, 0.2, ProductType.Food, 9), default));
+
+        Assert.Same(original, _repository.Product);
+    }
+
     [Theory]
     [InlineData(0, 50, 1, 0)]
     [InlineData(12, 4, 2, 3)]
@@ -107,8 +137,17 @@ public sealed class ProductServiceTests
         public Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(Product?.Id == id ? Product : null);
 
-        public Task<Product?> UpdateAsync(Guid id, ProductDetails details, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+        public Task<Product?> UpdateAsync(Guid id, ProductDetails details, CancellationToken cancellationToken)
+        {
+            if (Product?.Id != id)
+            {
+                return Task.FromResult<Product?>(null);
+            }
+
+            Product = new Product(id, details.Name, details.Price, details.Weight,
+                details.Type, Product.CreatedAt, details.WarehouseNumber);
+            return Task.FromResult<Product?>(Product);
+        }
 
         public Task<(IReadOnlyList<Product> Items, int TotalCount)> FindAsync(
             ProductQuery query, CancellationToken cancellationToken)
