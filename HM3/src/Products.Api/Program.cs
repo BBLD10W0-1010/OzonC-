@@ -1,3 +1,4 @@
+using FluentMigrator.Runner;
 using Products.Api.Configuration;
 using Products.Api.Grpc;
 using Products.Api.Middleware;
@@ -8,11 +9,17 @@ builder.Logging.ClearProviders();
 builder.Logging.AddSimpleConsole(options => options.TimestampFormat = "HH:mm:ss ");
 
 builder.Services
+    .AddProductStorage()
     .AddProductServices()
     .AddProductTransports()
     .AddProductSwagger();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.GetRequiredService<IMigrationRunner>().MigrateUp();
+}
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseSwagger();
@@ -23,5 +30,4 @@ app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
 app.Run();
 
-// Entry point for integration tests using WebApplicationFactory.
 public partial class Program;

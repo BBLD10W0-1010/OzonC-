@@ -4,7 +4,6 @@ using Microsoft.OpenApi.Models;
 using Products.Api.Application;
 using Products.Api.Application.Validation;
 using Products.Api.Grpc;
-using Products.Api.Infrastructure;
 using Products.Api.OpenApi;
 
 namespace Products.Api.Configuration;
@@ -13,7 +12,6 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddProductServices(this IServiceCollection services)
     {
-        services.AddSingleton<IProductRepository, InMemoryProductRepository>();
         services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddScoped<ProductService>();
         services.AddValidatorsFromAssemblyContaining<CreateProductValidator>();
@@ -44,7 +42,7 @@ public static class ServiceCollectionExtensions
             {
                 Title = "Хранение информации о товарах",
                 Version = "v1",
-                Description = "HTTP API и JSON-представление gRPC. Данные хранятся в памяти процесса."
+                Description = "HTTP API и JSON-представление gRPC."
             });
             options.DocumentFilter<GrpcTranscodingDocumentFilter>();
         });

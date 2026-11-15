@@ -11,20 +11,24 @@ public sealed class ProductsController(ProductService service) : ControllerBase
     [HttpPost]
     [ProducesResponseType<CreateProductResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-    public ActionResult<CreateProductResponse> Create(CreateProductRequest request)
+    public async Task<ActionResult<CreateProductResponse>> Create(
+        CreateProductRequest request, CancellationToken cancellationToken)
     {
-        var id = service.Create(request);
+        var id = await service.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id }, new CreateProductResponse(id));
     }
 
     [HttpGet]
     [ProducesResponseType<PagedProducts>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-    public ActionResult<PagedProducts> GetProducts([FromQuery] ProductQuery query) => service.GetProducts(query);
+    public async Task<ActionResult<PagedProducts>> GetProducts(
+        [FromQuery] ProductQuery query, CancellationToken cancellationToken) =>
+        await service.GetProductsAsync(query, cancellationToken);
 
     [HttpGet("{id}")]
     [ProducesResponseType<Product>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    public ActionResult<Product> GetById(Guid id) => service.GetById(id);
+    public async Task<ActionResult<Product>> GetById(Guid id, CancellationToken cancellationToken) =>
+        await service.GetByIdAsync(id, cancellationToken);
 }

@@ -1,5 +1,4 @@
 using FluentValidation;
-using Products.Api.Application.Queries;
 using Products.Api.Domain;
 
 namespace Products.Api.Application;
@@ -10,7 +9,7 @@ public sealed class ProductService(
     IValidator<ProductQuery> queryValidator,
     TimeProvider timeProvider)
 {
-    public Guid Create(CreateProductRequest request)
+    public Task<Guid> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken)
     {
         createValidator.ValidateAndThrow(request);
 
@@ -23,18 +22,18 @@ public sealed class ProductService(
             CreatedAt: timeProvider.GetUtcNow(),
             WarehouseNumber: request.WarehouseNumber);
 
-        repository.Add(product);
-        return product.Id;
+        return repository.AddAsync(product, cancellationToken);
     }
 
-    public Product GetById(Guid id) =>
-        repository.GetById(id) ?? throw new ProductNotFoundException(id);
+    public async Task<Product> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        await repository.GetByIdAsync(id, cancellationToken) ?? throw new ProductNotFoundException(id);
 
-    public PagedProducts GetProducts(ProductQuery query)
+    public async Task<PagedProducts> GetProductsAsync(ProductQuery query, CancellationToken cancellationToken)
     {
         queryValidator.ValidateAndThrow(query);
 
-        var matches = repository.Find(query);
-        return ProductPagination.CreatePage(matches, query);
+        var (items, totalCount) = await repository.FindAsync(query, cancellationToken);
+        var totalPages = (int)(((long)totalCount + query.PageSize - 1) / query.PageSize);
+        return new PagedProducts(items, totalCount, query.PageNumber, query.PageSize, totalPages);
     }
 }

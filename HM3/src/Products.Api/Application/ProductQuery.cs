@@ -14,4 +14,6 @@ public sealed class ProductQuery
     public int? WarehouseNumber { get; init; }
     public int PageNumber { get; init; } = DefaultPageNumber;
     public int PageSize { get; init; } = DefaultPageSize;
+
+    internal long Offset => ((long)PageNumber - 1) * PageSize;
 }

@@ -6,33 +6,30 @@ namespace Products.Api.Grpc;
 
 public sealed class ProductsGrpcService(ProductService service) : GrpcContracts.ProductsService.ProductsServiceBase
 {
-    public override Task<GrpcContracts.CreateProductResponse> CreateProduct(
+    public override async Task<GrpcContracts.CreateProductResponse> CreateProduct(
         GrpcContracts.CreateProductRequest request, ServerCallContext context)
     {
-        context.CancellationToken.ThrowIfCancellationRequested();
         var createRequest = GrpcProductMapper.ToCreateRequest(request);
-        var id = service.Create(createRequest);
+        var id = await service.CreateAsync(createRequest, context.CancellationToken);
 
-        return Task.FromResult(new GrpcContracts.CreateProductResponse { Id = id.ToString() });
+        return new GrpcContracts.CreateProductResponse { Id = id.ToString() };
     }
 
-    public override Task<GrpcContracts.GetProductsResponse> GetProducts(
+    public override async Task<GrpcContracts.GetProductsResponse> GetProducts(
         GrpcContracts.GetProductsRequest request, ServerCallContext context)
     {
-        context.CancellationToken.ThrowIfCancellationRequested();
         var query = GrpcProductMapper.ToQuery(request);
-        var page = service.GetProducts(query);
+        var page = await service.GetProductsAsync(query, context.CancellationToken);
 
-        return Task.FromResult(GrpcProductMapper.ToGrpc(page));
+        return GrpcProductMapper.ToGrpc(page);
     }
 
-    public override Task<GrpcContracts.Product> GetProduct(
+    public override async Task<GrpcContracts.Product> GetProduct(
         GrpcContracts.GetProductRequest request, ServerCallContext context)
     {
-        context.CancellationToken.ThrowIfCancellationRequested();
         var id = GrpcProductMapper.ParseId(request.Id);
-        var product = service.GetById(id);
+        var product = await service.GetByIdAsync(id, context.CancellationToken);
 
-        return Task.FromResult(GrpcProductMapper.ToGrpc(product));
+        return GrpcProductMapper.ToGrpc(product);
     }
 }

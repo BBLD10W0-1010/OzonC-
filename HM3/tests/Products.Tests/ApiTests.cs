@@ -4,7 +4,6 @@ using System.Text;
 using System.Text.Json;
 using Grpc.Core;
 using Grpc.Net.Client;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,12 +14,13 @@ using GrpcContracts = Products.Contracts.Grpc;
 
 namespace Products.Tests;
 
-public sealed class ApiTests : IDisposable
+[Collection("Postgres")]
+public sealed class ApiTests(PostgresFixture database) : IAsyncLifetime
 {
-    private readonly WebApplicationFactory<Program> _factory = new();
-    private readonly HttpClient _http;
+    private readonly WebApplicationFactory<Program> _factory = database.Api;
+    private readonly HttpClient _http = database.Api.CreateClient();
 
-    public ApiTests() => _http = _factory.CreateClient();
+    public Task InitializeAsync() => database.ResetAsync();
 
     [Fact]
     public async Task Http_CreatesReadsAndListsProduct()
@@ -250,10 +250,10 @@ public sealed class ApiTests : IDisposable
         Assert.DoesNotContain("secret-internal", error.Status.Detail);
     }
 
-    public void Dispose()
+    public Task DisposeAsync()
     {
         _http.Dispose();
-        _factory.Dispose();
+        return Task.CompletedTask;
     }
 
     private static object ValidHttpProduct() => new { name = "Молоко", price = 99.90m, weight = 1, type = "Food", warehouseNumber = 2 };
@@ -271,9 +271,14 @@ public sealed class ApiTests : IDisposable
 
     private sealed class FailingRepository : IProductRepository
     {
-        public void Add(Product product) => throw new InvalidOperationException("secret-internal");
-        public Product? GetById(Guid id) => throw new InvalidOperationException("secret-internal");
-        public IEnumerable<Product> GetAll() => throw new InvalidOperationException("secret-internal");
-        public IReadOnlyList<Product> Find(ProductQuery query) => throw new InvalidOperationException("secret-internal");
+        public Task<Guid> AddAsync(Product product, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<(IReadOnlyList<Product> Items, int TotalCount)> FindAsync(
+            ProductQuery query, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("secret-internal");
     }
 }
