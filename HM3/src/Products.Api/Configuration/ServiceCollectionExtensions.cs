@@ -14,7 +14,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddScoped<ProductService>();
-        services.AddValidatorsFromAssemblyContaining<CreateProductValidator>();
+        services.AddValidatorsFromAssemblyContaining<ProductDetailsValidator>();
 
         return services;
     }

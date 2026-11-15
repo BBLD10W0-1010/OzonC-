@@ -5,28 +5,35 @@ namespace Products.Api.Application;
 
 public sealed class ProductService(
     IProductRepository repository,
-    IValidator<CreateProductRequest> createValidator,
+    IValidator<ProductDetails> detailsValidator,
     IValidator<ProductQuery> queryValidator,
     TimeProvider timeProvider)
 {
-    public Task<Guid> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken)
+    public Task<Guid> CreateAsync(ProductDetails details, CancellationToken cancellationToken)
     {
-        createValidator.ValidateAndThrow(request);
+        detailsValidator.ValidateAndThrow(details);
 
         var product = new Product(
             Id: Guid.NewGuid(),
-            Name: request.Name.Trim(),
-            Price: request.Price,
-            Weight: request.Weight,
-            Type: request.Type,
+            Name: details.Name.Trim(),
+            Price: details.Price,
+            Weight: details.Weight,
+            Type: details.Type,
             CreatedAt: timeProvider.GetUtcNow(),
-            WarehouseNumber: request.WarehouseNumber);
+            WarehouseNumber: details.WarehouseNumber);
 
         return repository.AddAsync(product, cancellationToken);
     }
 
     public async Task<Product> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         await repository.GetByIdAsync(id, cancellationToken) ?? throw new ProductNotFoundException(id);
+
+    public async Task<Product> UpdateAsync(Guid id, ProductDetails details, CancellationToken cancellationToken)
+    {
+        detailsValidator.ValidateAndThrow(details);
+        return await repository.UpdateAsync(id, details with { Name = details.Name.Trim() }, cancellationToken)
+            ?? throw new ProductNotFoundException(id);
+    }
 
     public async Task<PagedProducts> GetProductsAsync(ProductQuery query, CancellationToken cancellationToken)
     {

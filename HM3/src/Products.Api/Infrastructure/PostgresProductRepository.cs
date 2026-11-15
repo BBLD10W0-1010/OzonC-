@@ -42,6 +42,28 @@ public sealed class PostgresProductRepository(NpgsqlDataSource dataSource) : IPr
         return row?.ToProduct();
     }
 
+    public async Task<Product?> UpdateAsync(Guid id, ProductDetails details, CancellationToken cancellationToken)
+    {
+        const string sql = $"""
+            UPDATE products
+            SET name = @Name, price = @Price, weight = @Weight, type = @Type, warehouse_number = @WarehouseNumber
+            WHERE id = @Id
+            RETURNING {Columns}
+            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var row = await connection.QuerySingleOrDefaultAsync<ProductRow>(new CommandDefinition(sql, new
+        {
+            Id = id,
+            details.Name,
+            details.Price,
+            details.Weight,
+            Type = (int)details.Type,
+            details.WarehouseNumber
+        }, cancellationToken: cancellationToken));
+        return row?.ToProduct();
+    }
+
     public async Task<(IReadOnlyList<Product> Items, int TotalCount)> FindAsync(
         ProductQuery query, CancellationToken cancellationToken)
     {

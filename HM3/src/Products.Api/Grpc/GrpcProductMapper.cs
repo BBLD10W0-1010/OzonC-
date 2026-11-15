@@ -9,7 +9,14 @@ namespace Products.Api.Grpc;
 
 public static class GrpcProductMapper
 {
-    public static CreateProductRequest ToCreateRequest(GrpcContracts.CreateProductRequest request) => new(
+    public static ProductDetails ToDetails(GrpcContracts.CreateProductRequest request) => new(
+        Name: request.Name,
+        Price: ParsePrice(request.Price),
+        Weight: request.Weight,
+        Type: (Domain.ProductType)request.Type,
+        WarehouseNumber: request.WarehouseNumber);
+
+    public static ProductDetails ToDetails(GrpcContracts.UpdateProductRequest request) => new(
         Name: request.Name,
         Price: ParsePrice(request.Price),
         Weight: request.Weight,
@@ -66,7 +73,7 @@ public static class GrpcProductMapper
         if (!decimal.TryParse(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
                 CultureInfo.InvariantCulture, out var price))
         {
-            throw InvalidField(nameof(CreateProductRequest.Price),
+            throw InvalidField(nameof(ProductDetails.Price),
                 "Цена должна быть десятичным числом, например 199.90.");
         }
 

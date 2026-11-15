@@ -7,7 +7,7 @@ namespace Products.Api.OpenApi;
 
 internal static class GrpcProductSchemas
 {
-    public const string CreateRequest = "GrpcCreateProduct";
+    public const string ProductDetails = "GrpcProductDetails";
     public const string CreatedProduct = "GrpcCreatedProduct";
     public const string Product = "GrpcProduct";
     public const string ProductPage = "GrpcProductPage";
@@ -15,7 +15,7 @@ internal static class GrpcProductSchemas
 
     public static void Register(IDictionary<string, OpenApiSchema> schemas)
     {
-        schemas[CreateRequest] = CreateRequestSchema();
+        schemas[ProductDetails] = CreateDetailsSchema();
         schemas[CreatedProduct] = Object(new() { ["id"] = Uuid() });
         schemas[Product] = CreateProductSchema();
         schemas[ProductPage] = CreatePageSchema();
@@ -35,7 +35,7 @@ internal static class GrpcProductSchemas
             .ToList()
     };
 
-    private static OpenApiSchema CreateRequestSchema()
+    private static OpenApiSchema CreateDetailsSchema()
     {
         var schema = Object(CreateProductProperties());
         schema.Required = new HashSet<string> { "name", "price", "weight", "warehouseNumber" };

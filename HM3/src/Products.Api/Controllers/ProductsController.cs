@@ -12,7 +12,7 @@ public sealed class ProductsController(ProductService service) : ControllerBase
     [ProducesResponseType<CreateProductResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CreateProductResponse>> Create(
-        CreateProductRequest request, CancellationToken cancellationToken)
+        ProductDetails request, CancellationToken cancellationToken)
     {
         var id = await service.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id }, new CreateProductResponse(id));
@@ -31,4 +31,12 @@ public sealed class ProductsController(ProductService service) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Product>> GetById(Guid id, CancellationToken cancellationToken) =>
         await service.GetByIdAsync(id, cancellationToken);
+
+    [HttpPut("{id}")]
+    [ProducesResponseType<Product>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Product>> Update(
+        Guid id, ProductDetails request, CancellationToken cancellationToken) =>
+        await service.UpdateAsync(id, request, cancellationToken);
 }

@@ -9,7 +9,7 @@ public sealed class ProductsGrpcService(ProductService service) : GrpcContracts.
     public override async Task<GrpcContracts.CreateProductResponse> CreateProduct(
         GrpcContracts.CreateProductRequest request, ServerCallContext context)
     {
-        var createRequest = GrpcProductMapper.ToCreateRequest(request);
+        var createRequest = GrpcProductMapper.ToDetails(request);
         var id = await service.CreateAsync(createRequest, context.CancellationToken);
 
         return new GrpcContracts.CreateProductResponse { Id = id.ToString() };
@@ -30,6 +30,15 @@ public sealed class ProductsGrpcService(ProductService service) : GrpcContracts.
         var id = GrpcProductMapper.ParseId(request.Id);
         var product = await service.GetByIdAsync(id, context.CancellationToken);
 
+        return GrpcProductMapper.ToGrpc(product);
+    }
+
+    public override async Task<GrpcContracts.Product> UpdateProduct(
+        GrpcContracts.UpdateProductRequest request, ServerCallContext context)
+    {
+        var id = GrpcProductMapper.ParseId(request.Id);
+        var details = GrpcProductMapper.ToDetails(request);
+        var product = await service.UpdateAsync(id, details, context.CancellationToken);
         return GrpcProductMapper.ToGrpc(product);
     }
 }

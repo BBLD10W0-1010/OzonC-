@@ -221,7 +221,7 @@ public sealed class ApiTests(PostgresFixture database) : IAsyncLifetime
         Assert.Equal(100, parameters["pageSize"].GetProperty("schema").GetProperty("maximum").GetInt32());
 
         var productType = document.GetProperty("components").GetProperty("schemas")
-            .GetProperty("GrpcCreateProduct").GetProperty("properties").GetProperty("type");
+            .GetProperty("GrpcProductDetails").GetProperty("properties").GetProperty("type");
         var protoType = GrpcContracts.Product.Descriptor.FindFieldByNumber(GrpcContracts.Product.TypeFieldNumber).EnumType;
         Assert.Equal(protoType.Values.Select(value => value.Name),
             productType.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
@@ -275,6 +275,9 @@ public sealed class ApiTests(PostgresFixture database) : IAsyncLifetime
             throw new NotSupportedException();
 
         public Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<Product?> UpdateAsync(Guid id, ProductDetails details, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         public Task<(IReadOnlyList<Product> Items, int TotalCount)> FindAsync(

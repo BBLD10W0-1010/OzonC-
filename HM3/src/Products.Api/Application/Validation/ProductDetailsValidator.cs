@@ -3,9 +3,9 @@ using Products.Api.Domain;
 
 namespace Products.Api.Application.Validation;
 
-public sealed class CreateProductValidator : AbstractValidator<CreateProductRequest>
+public sealed class ProductDetailsValidator : AbstractValidator<ProductDetails>
 {
-    public CreateProductValidator()
+    public ProductDetailsValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(Product.MaxNameLength);
         RuleFor(x => x.Price).GreaterThan(0);

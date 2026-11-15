@@ -16,6 +16,18 @@ Content-Type: application/json
 ### Получить товар
 GET {{host}}/api/products/{{id}}
 
+### Обновить товар
+PUT {{host}}/api/products/{{id}}
+Content-Type: application/json
+
+{
+  "name": "Молоко 3,2%",
+  "price": 109.90,
+  "weight": 0.9,
+  "type": "Food",
+  "warehouseNumber": 2
+}
+
 ### Фильтрация и пагинация
 GET {{host}}/api/products?type=Food&warehouseNumber=1&pageNumber=1&pageSize=5
 

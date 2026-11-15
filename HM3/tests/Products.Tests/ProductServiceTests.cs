@@ -12,7 +12,7 @@ public sealed class ProductServiceTests
     private readonly ProductService _service;
 
     public ProductServiceTests() => _service =
-        new(_repository, new CreateProductValidator(), new ProductQueryValidator(), new FixedTimeProvider());
+        new(_repository, new ProductDetailsValidator(), new ProductQueryValidator(), new FixedTimeProvider());
 
     [Fact]
     public async Task Create_StoresAllFieldsAndUsesServerUtcTime()
@@ -50,7 +50,7 @@ public sealed class ProductServiceTests
         Assert.Equal(expectedPages, page.TotalPages);
     }
 
-    public static TheoryData<CreateProductRequest, string> InvalidProducts => new()
+    public static TheoryData<ProductDetails, string> InvalidProducts => new()
     {
         { new("", 1, 1, ProductType.General, 1), "Name" },
         { new("   ", 1, 1, ProductType.General, 1), "Name" },
@@ -67,7 +67,7 @@ public sealed class ProductServiceTests
     };
     [Theory]
     [MemberData(nameof(InvalidProducts))]
-    public async Task Create_InvalidFieldsAreRejectedWithoutWriting(CreateProductRequest request, string field)
+    public async Task Create_InvalidFieldsAreRejectedWithoutWriting(ProductDetails request, string field)
     {
         var exception = await Assert.ThrowsAsync<ValidationException>(() => _service.CreateAsync(request, default));
 
@@ -106,6 +106,9 @@ public sealed class ProductServiceTests
 
         public Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(Product?.Id == id ? Product : null);
+
+        public Task<Product?> UpdateAsync(Guid id, ProductDetails details, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
         public Task<(IReadOnlyList<Product> Items, int TotalCount)> FindAsync(
             ProductQuery query, CancellationToken cancellationToken)

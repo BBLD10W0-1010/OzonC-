@@ -19,7 +19,8 @@ internal static class GrpcProductOperations
     {
         Operations = new Dictionary<OperationType, OpenApiOperation>
         {
-            [OperationType.Get] = GetProduct()
+            [OperationType.Get] = GetProduct(),
+            [OperationType.Put] = UpdateProduct()
         }
     };
 
@@ -29,7 +30,7 @@ internal static class GrpcProductOperations
         operation.RequestBody = new OpenApiRequestBody
         {
             Required = true,
-            Content = JsonContent(GrpcProductSchemas.CreateRequest)
+            Content = JsonContent(GrpcProductSchemas.ProductDetails)
         };
         return operation;
     }
@@ -59,16 +60,33 @@ internal static class GrpcProductOperations
     private static OpenApiOperation GetProduct()
     {
         var operation = Operation("GrpcGetProduct", "Получить товар через gRPC JSON", GrpcProductSchemas.Product);
-        operation.Parameters = new List<OpenApiParameter>
+        DescribeProductId(operation);
+        return operation;
+    }
+
+    private static OpenApiOperation UpdateProduct()
+    {
+        var operation = Operation("GrpcUpdateProduct", "Обновить товар через gRPC JSON", GrpcProductSchemas.Product);
+        DescribeProductId(operation);
+        operation.RequestBody = new OpenApiRequestBody
         {
+            Required = true,
+            Content = JsonContent(GrpcProductSchemas.ProductDetails)
+        };
+        return operation;
+    }
+
+    private static void DescribeProductId(OpenApiOperation operation)
+    {
+        operation.Parameters =
+        [
             new()
             {
                 Name = "id", In = ParameterLocation.Path, Required = true,
                 Schema = new() { Type = "string", Format = "uuid" }
             }
-        };
+        ];
         operation.Responses["404"] = ErrorResponse("Товар не найден.");
-        return operation;
     }
 
     private static OpenApiOperation Operation(string id, string summary, string response) => new()
