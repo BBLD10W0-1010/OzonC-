@@ -2,7 +2,7 @@ using ClientStat.Application.Models;
 
 public class FileSummaryWriter : ISummaryWriter
 {
-   public void Write(IEnumerable<ClientSummary> report)
+    public void Write(IEnumerable<ClientSummary> report)
     {
         var fileName =
             $"report_{DateTime.Now:yyyyMMdd_HHmmssfff}.txt";
