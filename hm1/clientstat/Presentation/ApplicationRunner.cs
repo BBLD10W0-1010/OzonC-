@@ -24,18 +24,34 @@ public class ApplicationRunner
         }
 
         var mode = args[0];
+        ISummaryWriter writer;
 
-        var clientIds = args
-            .Skip(1)
-            .Select(long.Parse)
-            .ToList();
+        try
+        {
+            writer = _reportWriterFactory.Create(mode);
+        }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine(ex.Message);
+            return;
+        }
+
+        var clientIds = new List<long>();
+
+        foreach (var argument in args.Skip(1))
+        {
+            if (!long.TryParse(argument, out var clientId))
+            {
+                Console.WriteLine($"Некорректный ID клиента '{argument}'. Ожидается 64-битное целое число.");
+                return;
+            }
+
+            clientIds.Add(clientId);
+        }
 
         try
         {
             var report = _reportService.CreateSummary(clientIds);
-
-            var writer = _reportWriterFactory.Create(mode);
-
             writer.Write(report);
         }
         catch (ClientNotFoundException ex)

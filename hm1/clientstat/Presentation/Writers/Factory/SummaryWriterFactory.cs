@@ -18,7 +18,7 @@ public class SummaryWriterFactory : ISummaryWriterFactory
             "console" => _consoleWriter,
             "file" => _fileWriter,
             _ => throw new ArgumentException(
-                $"Неизвестный режим '{mode}'")
+                $"Неизвестный режим '{mode}'. Используйте console или file.")
         };
     }
 }
