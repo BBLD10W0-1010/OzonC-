@@ -1,8 +1,11 @@
-namespace ClientStat.Application.Models{
-    public class ClientSummary
+namespace ClientStat.Application.Models
+{
+    public sealed record ClientSummary
     {
-        public long ClientId { get; set; }
-        public float OrdersSum { get; set; }
-        public string FavoriteItemName { get; set; } = string.Empty;
+        public required long ClientId { get; init; }
+
+        public required float OrdersSum { get; init; }
+
+        public required string FavoriteItemName { get; init; }
     }
 }

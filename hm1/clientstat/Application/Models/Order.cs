@@ -1,10 +1,15 @@
-namespace ClientStat.Application.Models{
-    public class Order
+namespace ClientStat.Application.Models
+{
+    public sealed record Order
     {
-        public long ClientId {get; set;}
-        public long OrderId {get; set;}
-        public string ItemName { get;set; } = string.Empty;
-        public int ItemQuantity { get; set; }
-        public float ItemPrice { get; set; }
+        public required long ClientId { get; init; }
+
+        public required long OrderId { get; init; }
+
+        public required string ItemName { get; init; }
+
+        public required int ItemQuantity { get; init; }
+
+        public required float ItemPrice { get; init; }
     }
 }

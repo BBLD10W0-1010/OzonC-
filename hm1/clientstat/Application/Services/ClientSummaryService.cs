@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using ClientStat.Application.Exceptions;
 using ClientStat.Application.Interfaces;
 using ClientStat.Application.Models;
@@ -29,15 +28,22 @@ namespace ClientStat.Application.Services
 
                 var clientSum = clientOrders.Sum(x => x.ItemQuantity * x.ItemPrice);
 
-                var favoriteItemName = clientOrders.GroupBy(x => x.ItemName).Select(group => new
-                {
-                    Name = group.Key,
-                    Quantity = group.Sum(x => x.ItemQuantity)
-                })
-                .OrderByDescending(x => x.Quantity)
-                .First().Name;
+                var favoriteItemName = clientOrders
+                    .GroupBy(x => x.ItemName)
+                    .Select(group => new
+                    {
+                        Name = group.Key,
+                        Quantity = group.Sum(x => x.ItemQuantity)
+                    })
+                    .OrderByDescending(x => x.Quantity)
+                    .First().Name;
 
-                yield return new ClientSummary{ ClientId = clientId, OrdersSum = clientSum, FavoriteItemName = favoriteItemName};
+                yield return new ClientSummary
+                {
+                    ClientId = clientId,
+                    OrdersSum = clientSum,
+                    FavoriteItemName = favoriteItemName
+                };
             }
         }
     }
